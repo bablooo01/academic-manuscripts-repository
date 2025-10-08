@@ -616,15 +616,10 @@ def upload_manuscript():
                 app.logger.warning("Azure upload failed, fallback to local: %s", e)
                 file_url = None
 
-        # Local fallback
+        # Local fallback - REMOVED for Render compatibility
         if not file_url:
-            uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
-            os.makedirs(uploads_dir, exist_ok=True)
-            local_path = os.path.join(uploads_dir, filename)
-            file.stream.seek(0)
-            file.save(local_path)
-            file_url = f"/uploads/{filename}"
-            app.logger.info("Saved locally at %s", local_path)
+            app.logger.error("Azure upload failed and local storage not available on Render")
+            return jsonify({"error": "File upload failed. Azure Blob Storage is required for cloud deployment."}), 500
 
         # Save metadata
         try:
@@ -651,6 +646,157 @@ def upload_manuscript():
     except Exception as e:
         app.logger.exception("Upload manuscript error")
         return jsonify({"error": f"Upload failed: {str(e)}"}), 500
+
+# ------------------ File Preview & Download Routes ------------------
+@app.route('/preview/<int:manuscript_id>')
+@login_required
+def preview_manuscript(manuscript_id):
+    """Preview manuscript file"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT file_url FROM manuscripts WHERE manuscript_id = ?", (manuscript_id,))
+            manuscript = cursor.fetchone()
+            
+            if not manuscript:
+                return jsonify({"error": "Manuscript not found"}), 404
+            
+            file_url = manuscript['file_url']
+            
+            # If it's an Azure URL, redirect to it
+            if file_url and file_url.startswith('http'):
+                return redirect(file_url)
+            
+            # If it's a local path, try to serve it (but on Render this won't work for uploaded files)
+            elif file_url and file_url.startswith('/uploads/'):
+                filename = file_url.split('/')[-1]
+                uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
+                file_path = os.path.join(uploads_dir, filename)
+                
+                if os.path.exists(file_path):
+                    return send_from_directory(uploads_dir, filename)
+                else:
+                    return jsonify({"error": "File not found on server. On Render cloud, files must be stored in Azure Blob Storage."}), 404
+            else:
+                return jsonify({"error": "Invalid file URL or file not accessible"}), 404
+                
+    except Exception as e:
+        app.logger.error(f"Preview manuscript error: {e}")
+        return jsonify({"error": f"Failed to preview manuscript: {str(e)}"}), 500
+
+@app.route('/download/<int:manuscript_id>')
+@login_required
+def download_manuscript(manuscript_id):
+    """Download manuscript file"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT file_url, title FROM manuscripts WHERE manuscript_id = ?", (manuscript_id,))
+            manuscript = cursor.fetchone()
+            
+            if not manuscript:
+                return jsonify({"error": "Manuscript not found"}), 404
+            
+            file_url = manuscript['file_url']
+            title = manuscript['title']
+            
+            # If it's an Azure URL, redirect to it
+            if file_url and file_url.startswith('http'):
+                # For Azure URLs, we can redirect directly
+                response = redirect(file_url)
+                # Try to suggest download filename
+                safe_title = secure_filename(title)
+                response.headers['Content-Disposition'] = f'attachment; filename="{safe_title}.pdf"'
+                return response
+            
+            # If it's a local path (this won't work on Render for uploaded files)
+            elif file_url and file_url.startswith('/uploads/'):
+                filename = file_url.split('/')[-1]
+                uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
+                file_path = os.path.join(uploads_dir, filename)
+                
+                if os.path.exists(file_path):
+                    safe_title = secure_filename(title)
+                    return send_from_directory(
+                        uploads_dir, 
+                        filename, 
+                        as_attachment=True,
+                        download_name=f"{safe_title}.{filename.split('.')[-1]}"
+                    )
+                else:
+                    return jsonify({"error": "File not found on server. On Render cloud, files must be stored in Azure Blob Storage."}), 404
+            else:
+                return jsonify({"error": "Invalid file URL or file not accessible"}), 404
+                
+    except Exception as e:
+        app.logger.error(f"Download manuscript error: {e}")
+        return jsonify({"error": f"Failed to download manuscript: {str(e)}"}), 500
+
+# ------------------ Translation Download Routes ------------------
+@app.route('/translations/<int:translation_id>')
+@login_required
+def get_translation(translation_id):
+    """Get specific translation details"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT tr.*, m.title as manuscript_title, m.author as manuscript_author,
+                       u.username as translator_name, u.full_name as translator_full_name
+                FROM translations tr
+                LEFT JOIN manuscripts m ON tr.manuscript_id = m.manuscript_id
+                LEFT JOIN users u ON tr.translator_id = u.user_id
+                WHERE tr.translation_id = ?
+            """, (translation_id,))
+            
+            translation = cursor.fetchone()
+            
+            if not translation:
+                return jsonify({"error": "Translation not found"}), 404
+            
+            translation_dict = dict(translation)
+            # Convert datetime objects to strings
+            for key, value in translation_dict.items():
+                if isinstance(value, (datetime.datetime, datetime.date)):
+                    translation_dict[key] = value.isoformat()
+            
+            return jsonify(translation_dict)
+            
+    except Exception as e:
+        app.logger.error(f"Get translation error: {e}")
+        return jsonify({"error": "Failed to load translation"}), 500
+
+@app.route('/translations/<int:translation_id>/download')
+@login_required
+def download_translation(translation_id):
+    """Download translation as text file"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT translation_title, translated_text, target_language
+                FROM translations WHERE translation_id = ?
+            """, (translation_id,))
+            
+            translation = cursor.fetchone()
+            
+            if not translation:
+                return jsonify({"error": "Translation not found"}), 404
+            
+            # Create text file
+            text_content = translation['translated_text']
+            filename = f"{translation['translation_title']}_{translation['target_language']}.txt"
+            safe_filename = secure_filename(filename)
+            
+            response = make_response(text_content)
+            response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+            response.headers['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
+            
+            return response
+            
+    except Exception as e:
+        app.logger.error(f"Download translation error: {e}")
+        return jsonify({"error": "Failed to download translation"}), 500
 
 # ------------------ Topics & Locations ------------------
 @app.route('/topics', methods=['GET'])
@@ -853,6 +999,61 @@ def get_detailed_languages():
             'success': False,
             'error': f'Failed to load languages: {str(e)}'
         }), 500
+
+# ------------------ Debug Routes ------------------
+@app.route('/debug/files', methods=['GET'])
+@admin_required
+def debug_files():
+    """Debug endpoint to check file URLs and accessibility"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT manuscript_id, title, file_url FROM manuscripts")
+            manuscripts = cursor.fetchall()
+            
+            file_info = []
+            for ms in manuscripts:
+                file_url = ms['file_url']
+                accessible = False
+                error = ""
+                file_type = ""
+                
+                if file_url:
+                    if file_url.startswith('http'):
+                        # Azure URL
+                        file_type = "Azure Blob"
+                        try:
+                            response = requests.head(file_url, timeout=10)
+                            accessible = response.status_code == 200
+                            if not accessible:
+                                error = f"HTTP {response.status_code}"
+                        except Exception as e:
+                            error = str(e)
+                    elif file_url.startswith('/uploads/'):
+                        # Local file
+                        file_type = "Local File"
+                        filename = file_url.split('/')[-1]
+                        uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
+                        file_path = os.path.join(uploads_dir, filename)
+                        accessible = os.path.exists(file_path)
+                        if not accessible:
+                            error = "File not found locally (not persistent on Render)"
+                    else:
+                        file_type = "Unknown"
+                        error = "Invalid URL format"
+                
+                file_info.append({
+                    'id': ms['manuscript_id'],
+                    'title': ms['title'],
+                    'url': file_url,
+                    'type': file_type,
+                    'accessible': accessible,
+                    'error': error
+                })
+            
+            return jsonify({"files": file_info})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ------------------ Check Auth Status ------------------
 @app.route('/check-auth', methods=['GET'])
