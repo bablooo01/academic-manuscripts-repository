@@ -651,34 +651,215 @@ def upload_manuscript():
 @app.route('/preview/<int:manuscript_id>')
 @login_required
 def preview_manuscript(manuscript_id):
-    """Preview manuscript file"""
+    """Enhanced preview with multiple viewing options"""
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT file_url FROM manuscripts WHERE manuscript_id = ?", (manuscript_id,))
+            cursor.execute("SELECT file_url, title FROM manuscripts WHERE manuscript_id = ?", (manuscript_id,))
             manuscript = cursor.fetchone()
             
             if not manuscript:
                 return jsonify({"error": "Manuscript not found"}), 404
             
             file_url = manuscript['file_url']
+            title = manuscript['title']
             
-            # If it's an Azure URL, redirect to it
-            if file_url and file_url.startswith('http'):
-                return redirect(file_url)
+            if not file_url:
+                return jsonify({"error": "No file URL available"}), 404
             
-            # If it's a local path, try to serve it (but on Render this won't work for uploaded files)
-            elif file_url and file_url.startswith('/uploads/'):
-                filename = file_url.split('/')[-1]
-                uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
-                file_path = os.path.join(uploads_dir, filename)
+            # Create a preview page with multiple options
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Preview: {title}</title>
+                <style>
+                    body {{ 
+                        margin: 0; 
+                        padding: 0; 
+                        font-family: 'Segoe UI', system-ui, sans-serif;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        min-height: 100vh;
+                    }}
+                    .container {{
+                        max-width: 1200px;
+                        margin: 0 auto;
+                        padding: 40px 20px;
+                    }}
+                    .preview-card {{
+                        background: rgba(255, 255, 255, 0.95);
+                        backdrop-filter: blur(20px);
+                        border-radius: 20px;
+                        padding: 40px;
+                        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                    }}
+                    .header {{
+                        text-align: center;
+                        margin-bottom: 30px;
+                        border-bottom: 2px solid #f0f0f0;
+                        padding-bottom: 20px;
+                    }}
+                    .header h1 {{
+                        color: #2c3e50;
+                        margin-bottom: 10px;
+                        font-size: 2.2em;
+                    }}
+                    .header p {{
+                        color: #666;
+                        font-size: 1.1em;
+                    }}
+                    .preview-options {{
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                        gap: 20px;
+                        margin-bottom: 30px;
+                    }}
+                    .option-card {{
+                        background: white;
+                        padding: 25px;
+                        border-radius: 15px;
+                        text-align: center;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                        border: 2px solid transparent;
+                        transition: all 0.3s ease;
+                        cursor: pointer;
+                    }}
+                    .option-card:hover {{
+                        transform: translateY(-5px);
+                        border-color: #3498db;
+                        box-shadow: 0 15px 40px rgba(52, 152, 219, 0.2);
+                    }}
+                    .option-icon {{
+                        font-size: 3em;
+                        margin-bottom: 15px;
+                        color: #3498db;
+                    }}
+                    .option-title {{
+                        font-size: 1.3em;
+                        font-weight: 600;
+                        color: #2c3e50;
+                        margin-bottom: 10px;
+                    }}
+                    .option-desc {{
+                        color: #666;
+                        line-height: 1.5;
+                    }}
+                    .viewer-container {{
+                        background: white;
+                        border-radius: 15px;
+                        padding: 20px;
+                        margin-top: 20px;
+                        display: none;
+                    }}
+                    .viewer-frame {{
+                        width: 100%;
+                        height: 70vh;
+                        border: none;
+                        border-radius: 10px;
+                    }}
+                    .action-buttons {{
+                        text-align: center;
+                        margin-top: 30px;
+                    }}
+                    .btn {{
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 12px 25px;
+                        background: linear-gradient(135deg, #3498db, #2c3e50);
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 50px;
+                        font-weight: 600;
+                        margin: 0 10px;
+                        transition: all 0.3s ease;
+                        border: none;
+                        cursor: pointer;
+                    }}
+                    .btn:hover {{
+                        transform: translateY(-3px);
+                        box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3);
+                    }}
+                    .btn-download {{
+                        background: linear-gradient(135deg, #27ae60, #219a52);
+                    }}
+                    .btn-download:hover {{
+                        box-shadow: 0 10px 25px rgba(39, 174, 96, 0.3);
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="preview-card">
+                        <div class="header">
+                            <h1>📖 {title}</h1>
+                            <p>Choose how you want to view this manuscript</p>
+                        </div>
+                        
+                        <div class="preview-options">
+                            <div class="option-card" onclick="openDirectView()">
+                                <div class="option-icon">🔗</div>
+                                <div class="option-title">Direct View</div>
+                                <div class="option-desc">Open the file directly in your browser</div>
+                            </div>
+                            
+                            <div class="option-card" onclick="openGoogleViewer()">
+                                <div class="option-icon">📄</div>
+                                <div class="option-title">Google Docs Viewer</div>
+                                <div class="option-desc">Use Google's PDF viewer (recommended for PDFs)</div>
+                            </div>
+                            
+                            <div class="option-card" onclick="openNewTab()">
+                                <div class="option-icon">🔄</div>
+                                <div class="option-title">New Tab</div>
+                                <div class="option-desc">Open in a new browser tab</div>
+                            </div>
+                        </div>
+                        
+                        <div id="viewer-container" class="viewer-container">
+                            <iframe id="viewer-frame" class="viewer-frame" src=""></iframe>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <a href="/download/{manuscript_id}" class="btn btn-download">
+                                <i class="fas fa-download"></i> Download File
+                            </a>
+                            <button class="btn" onclick="window.close()">
+                                <i class="fas fa-times"></i> Close Preview
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 
-                if os.path.exists(file_path):
-                    return send_from_directory(uploads_dir, filename)
-                else:
-                    return jsonify({"error": "File not found on server. On Render cloud, files must be stored in Azure Blob Storage."}), 404
-            else:
-                return jsonify({"error": "Invalid file URL or file not accessible"}), 404
+                <script>
+                    const fileUrl = "{file_url}";
+                    
+                    function openDirectView() {{
+                        // Try to open directly with inline disposition
+                        window.open(fileUrl, '_blank');
+                    }}
+                    
+                    function openGoogleViewer() {{
+                        // Use Google Docs viewer for better PDF rendering
+                        const googleViewerUrl = `https://docs.google.com/gview?url=${{fileUrl}}&embedded=true`;
+                        document.getElementById('viewer-frame').src = googleViewerUrl;
+                        document.getElementById('viewer-container').style.display = 'block';
+                    }}
+                    
+                    function openNewTab() {{
+                        window.open(fileUrl, '_blank');
+                    }}
+                    
+                    // Auto-open Google Viewer for PDF files
+                    if (fileUrl.toLowerCase().endsWith('.pdf')) {{
+                        setTimeout(() => openGoogleViewer(), 500);
+                    }}
+                </script>
+            </body>
+            </html>
+            """
+            
+            return html_content
                 
     except Exception as e:
         app.logger.error(f"Preview manuscript error: {e}")
