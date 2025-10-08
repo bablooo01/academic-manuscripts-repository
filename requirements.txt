@@ -1,7 +1,7 @@
-Flask
-gunicorn
-mysql-connector-python
-azure-storage-blob
-azure-core
-googletrans==4.0.0rc1
+Flask==3.0.3
+gunicorn==23.0.0
+azure-storage-blob==12.26.0
+azure-core==1.35.1
+deep-translator==1.11.4
+Werkzeug==3.0.3
 
