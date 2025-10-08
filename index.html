@@ -1,0 +1,2009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manuscript Management - Translation & Archival Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --hover-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            --transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--gradient);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header Styles */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: var(--card-shadow);
+            border-left: 6px solid var(--secondary);
+            transform: translateY(0);
+            transition: var(--transition);
+        }
+
+        .header:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .app-title {
+            text-align: center;
+            color: var(--primary);
+            font-size: 3em;
+            margin-bottom: 10px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .app-subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 1.3em;
+            margin-bottom: 30px;
+            font-weight: 300;
+        }
+
+        /* Welcome Bar */
+        .welcome-bar {
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--card-shadow);
+            animation: slideInDown 0.8s ease;
+        }
+
+        .welcome-text {
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2em;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+            transition: var(--transition);
+        }
+
+        .user-avatar:hover {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .dashboard-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--secondary), var(--accent));
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .card-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .card-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .card-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .card-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 25px;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+        }
+
+        .card-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3);
+        }
+
+        /* Manuscripts Section */
+        .content-section {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 30px;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .section-title {
+            color: var(--primary);
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .section-subtitle {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 30px;
+        }
+
+        /* Search and Filter */
+        .search-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            padding: 18px 25px;
+            border: 2px solid #e0e0e0;
+            border-radius: 50px;
+            font-size: 1.1em;
+            transition: var(--transition);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+            transform: scale(1.02);
+        }
+
+        .filter-select {
+            padding: 18px 25px;
+            border: 2px solid #e0e0e0;
+            border-radius: 50px;
+            font-size: 1.1em;
+            background: rgba(255, 255, 255, 0.8);
+            min-width: 200px;
+            transition: var(--transition);
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+        }
+
+        /* Manuscripts Table */
+        .manuscripts-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+
+        .manuscripts-table th {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white;
+            padding: 25px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .manuscripts-table td {
+            padding: 25px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: var(--transition);
+        }
+
+        .manuscripts-table tr:hover td {
+            background: #f8f9fa;
+            transform: scale(1.01);
+        }
+
+        .manuscripts-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-view {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #2980b9;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-download {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-download:hover {
+            background: #219a52;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .btn-translate {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-translate:hover {
+            background: #e67e22;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.3);
+        }
+
+        /* Forms */
+        .upload-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 1.1em;
+        }
+
+        .form-input {
+            padding: 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1em;
+            transition: var(--transition);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+            transform: scale(1.02);
+        }
+
+        .btn-upload {
+            background: linear-gradient(135deg, var(--accent), #c0392b);
+            color: white;
+            padding: 18px 35px;
+            font-size: 1.2em;
+            grid-column: 1 / -1;
+            justify-self: start;
+            border-radius: 50px;
+            margin-top: 20px;
+        }
+
+        .btn-upload:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(231, 76, 60, 0.3);
+        }
+
+        /* Translation Section */
+        .translation-box {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 25px;
+            min-height: 250px;
+            margin-bottom: 25px;
+            font-size: 1.1em;
+            line-height: 1.7;
+            width: 100%;
+            resize: vertical;
+            transition: var(--transition);
+        }
+
+        .translation-box:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+        }
+
+        /* User Menu */
+        .user-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .user-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            min-width: 220px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            border-radius: 15px;
+            z-index: 1000;
+            overflow: hidden;
+            animation: fadeInDown 0.3s ease;
+        }
+
+        .user-menu:hover .user-dropdown {
+            display: block;
+        }
+
+        .user-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 20px;
+            text-decoration: none;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            transition: var(--transition);
+        }
+
+        .user-dropdown-item:hover {
+            background: #f8f9fa;
+            transform: translateX(5px);
+        }
+
+        .user-dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .role-badge {
+            background: var(--accent);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--secondary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 20px 30px;
+            border-radius: 15px;
+            color: white;
+            font-weight: 600;
+            box-shadow: var(--card-shadow);
+            z-index: 10000;
+            transform: translateX(400px);
+            transition: var(--transition);
+            backdrop-filter: blur(20px);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, var(--success), #219a52);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, var(--accent), #c0392b);
+        }
+
+        .notification.warning {
+            background: linear-gradient(135deg, var(--warning), #e67e22);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--primary);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 20px;
+            margin-top: 50px;
+            box-shadow: var(--card-shadow);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .upload-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-container {
+                flex-direction: column;
+            }
+            
+            .search-box, .filter-select {
+                min-width: 100%;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .manuscripts-table {
+                font-size: 0.9em;
+            }
+            
+            .manuscripts-table th,
+            .manuscripts-table td {
+                padding: 15px 10px;
+            }
+
+            .welcome-bar {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .app-title {
+                font-size: 2.2em;
+            }
+
+            .translation-comparison {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* Manuscript Metadata */
+        .manuscript-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+        }
+
+        /* Translation Statistics */
+        .translation-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: var(--card-shadow);
+            border-left: 4px solid var(--secondary);
+        }
+
+        .stat-number {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        /* Translation Progress */
+        #translation-progress {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--warning);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar-container {
+            background: #e9ecef;
+            border-radius: 5px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, var(--success), var(--secondary));
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Welcome Bar -->
+        <div class="welcome-bar">
+            <div class="welcome-text" id="welcome-text">Welcome to Manuscript Management Platform</div>
+            <div class="user-info">
+                <div id="user-menu" class="user-menu">
+                    <div class="user-avatar" id="user-avatar">👤</div>
+                    <span id="user-name">User</span>
+                    <span class="role-badge" id="user-role">Role</span>
+                    <div class="user-dropdown">
+                        <button class="user-dropdown-item" onclick="viewProfile()">
+                            <i class="fas fa-user"></i> Profile
+                        </button>
+                        <button class="user-dropdown-item" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <div class="header">
+            <h1 class="app-title">Manuscript Management</h1>
+            <p class="app-subtitle">Translation & archival platform</p>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Manuscripts Card -->
+            <div class="dashboard-card">
+                <div class="card-icon">📚</div>
+                <h3 class="card-title">Manuscripts</h3>
+                <p class="card-description">Browse, preview and manage manuscripts from our extensive collection of historical documents and academic works.</p>
+                <button class="card-button" onclick="showSection('manuscripts')">
+                    <i class="fas fa-eye"></i> View Manuscripts
+                </button>
+            </div>
+
+            <!-- Topics Card -->
+            <div class="dashboard-card">
+                <div class="card-icon">🏷️</div>
+                <h3 class="card-title">Topics</h3>
+                <p class="card-description">Explore our comprehensive topic taxonomy and detailed descriptions across various academic disciplines and historical periods.</p>
+                <button class="card-button" onclick="showSection('topics')">
+                    <i class="fas fa-tags"></i> View Topics
+                </button>
+            </div>
+
+            <!-- Locations Card -->
+            <div class="dashboard-card">
+                <div class="card-icon">🏛️</div>
+                <h3 class="card-title">Locations</h3>
+                <p class="card-description">Discover holding libraries, archives, and repositories around the world where original manuscripts are preserved.</p>
+                <button class="card-button" onclick="showSection('locations')">
+                    <i class="fas fa-map-marker-alt"></i> View Locations
+                </button>
+            </div>
+
+            <!-- Upload Card -->
+            <div class="dashboard-card" id="upload-card" style="display: none;">
+                <div class="card-icon">📤</div>
+                <h3 class="card-title">Upload</h3>
+                <p class="card-description">Add new manuscripts to the repository. Upload PDFs, documents, and images with detailed metadata and categorization.</p>
+                <button class="card-button" onclick="showSection('upload')">
+                    <i class="fas fa-upload"></i> Upload Manuscript
+                </button>
+            </div>
+
+            <!-- Translate Card -->
+            <div class="dashboard-card" id="translate-card" style="display: none;">
+                <div class="card-icon">🌐</div>
+                <h3 class="card-title">Translate</h3>
+                <p class="card-description">Access the translator workspace to create, manage, and publish translations of historical manuscripts and academic texts.</p>
+                <button class="card-button" onclick="showSection('translate')">
+                    <i class="fas fa-language"></i> Translate
+                </button>
+            </div>
+
+            <!-- AI Translation Card -->
+            <div class="dashboard-card" id="nlp-card" style="display: none;">
+                <div class="card-icon">🤖</div>
+                <h3 class="card-title">AI Translation</h3>
+                <p class="card-description">Automatically translate manuscripts using advanced AI and machine learning algorithms powered by Google Translate.</p>
+                <button class="card-button" onclick="showSection('nlp-translate')">
+                    <i class="fas fa-robot"></i> AI Translate
+                </button>
+            </div>
+
+            <!-- Translations Card -->
+            <div class="dashboard-card" id="translations-card" style="display: none;">
+                <div class="card-icon">📖</div>
+                <h3 class="card-title">Translations</h3>
+                <p class="card-description">Browse completed translations, manage translation projects, and access multilingual versions of manuscripts.</p>
+                <button class="card-button" onclick="showSection('translations-list')">
+                    <i class="fas fa-book-open"></i> View Translations
+                </button>
+            </div>
+        </div>
+
+        <!-- Manuscripts Section -->
+        <div id="manuscripts" class="content-section">
+            <h2 class="section-title">Manuscripts</h2>
+            <p class="section-subtitle">Browse, search, and manage the manuscript collection</p>
+
+            <div class="search-container">
+                <input type="text" class="search-box" placeholder="Search by title, author or topic..." onkeyup="searchManuscripts()">
+                <select class="filter-select" onchange="filterManuscripts()">
+                    <option value="">All Topics</option>
+                    <option value="Astronomy">Astronomy</option>
+                    <option value="Mathematics">Mathematics</option>
+                    <option value="Medicine">Medicine</option>
+                    <option value="Chemistry">Chemistry</option>
+                    <option value="Philosophy">Philosophy</option>
+                    <option value="Literature">Literature</option>
+                    <option value="Architecture">Architecture</option>
+                    <option value="Art">Art</option>
+                </select>
+                <button class="refresh-btn" onclick="loadManuscripts()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+
+            <table class="manuscripts-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>Topic</th>
+                        <th>Location</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="manuscripts-table-body">
+                    <!-- Manuscripts will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Upload Section -->
+        <div id="upload" class="content-section">
+            <h2 class="section-title">Upload Manuscript</h2>
+            <p class="section-subtitle">Add new manuscripts to the repository (Admin only)</p>
+
+            <form id="uploadForm" class="upload-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label class="form-label">Title *</label>
+                    <input type="text" class="form-input" name="title" required placeholder="Enter manuscript title">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Author *</label>
+                    <input type="text" class="form-input" name="author" required placeholder="Enter author name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Topic *</label>
+                    <select class="form-input" name="topic_id" required>
+                        <option value="">Select Topic</option>
+                        <option value="1">Astronomy</option>
+                        <option value="2">Mathematics</option>
+                        <option value="3">Medicine</option>
+                        <option value="4">Chemistry</option>
+                        <option value="5">Philosophy</option>
+                        <option value="6">Literature</option>
+                        <option value="7">Architecture</option>
+                        <option value="8">Art</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Location</label>
+                    <select class="form-input" name="location_id">
+                        <option value="">Select Location</option>
+                        <option value="1">Alexandria Library</option>
+                        <option value="2">British Library</option>
+                        <option value="3">Timbuktu Archives</option>
+                        <option value="4">Nalanda University</option>
+                        <option value="5">Pergamon Library</option>
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label class="form-label">Manuscript File *</label>
+                    <input type="file" class="form-input" name="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" required>
+                    <small style="color: #666; margin-top: 8px;">Supported formats: PDF, DOC, DOCX, TXT, PNG, JPG, JPEG (Max 30MB)</small>
+                </div>
+                <button type="submit" class="btn-upload">
+                    <span id="upload-text"><i class="fas fa-upload"></i> Upload Manuscript</span>
+                    <span id="upload-loading" class="loading" style="display: none;"></span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Translation Section -->
+        <div id="translate" class="content-section">
+            <h2 class="section-title">Translation Workspace</h2>
+            <p class="section-subtitle">Translate manuscripts and manage translation projects</p>
+
+            <div class="upload-form">
+                <div class="form-group">
+                    <label class="form-label">Select Manuscript *</label>
+                    <select class="form-input" id="translate-manuscript" required>
+                        <option value="">Choose a manuscript to translate</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Translation Title *</label>
+                    <input type="text" class="form-input" id="translation-title" placeholder="Enter translation title" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Source Language</label>
+                    <select class="form-input" id="source-language">
+                        <option value="en">English</option>
+                        <option value="la">Latin</option>
+                        <option value="grc">Ancient Greek</option>
+                        <option value="ar">Arabic</option>
+                        <option value="sa">Sanskrit</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Target Language *</label>
+                    <select class="form-input" id="target-language" required>
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="it">Italian</option>
+                        <option value="hi">Hindi</option>
+                        <option value="zh">Chinese</option>
+                        <option value="ja">Japanese</option>
+                    </select>
+                </div>
+            </div>
+            <label class="form-label">Translation Text *</label>
+            <textarea class="translation-box" placeholder="Enter your translation here..." id="translation-text" required></textarea>
+            <div class="action-buttons">
+                <button class="btn btn-translate" onclick="saveTranslation()">
+                    <i class="fas fa-save"></i> Save Translation
+                </button>
+                <button class="btn btn-download" onclick="downloadCurrentTranslation()">
+                    <i class="fas fa-download"></i> Download Translation
+                </button>
+            </div>
+        </div>
+
+        <!-- AI Translation Section -->
+        <div id="nlp-translate" class="content-section">
+            <h2 class="section-title">🤖 AI-Powered Translation</h2>
+            <p class="section-subtitle">Automatically translate manuscripts using advanced Google AI</p>
+
+            <div class="upload-form">
+                <div class="form-group">
+                    <label class="form-label">Select Manuscript</label>
+                    <select class="form-input" id="nlp-manuscript">
+                        <option value="">Choose a manuscript to translate</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Source Language</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select class="form-input" id="nlp-source-language" style="flex: 1;">
+                            <option value="auto">🔍 Auto-Detect</option>
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="it">Italian</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="ru">Russian</option>
+                            <option value="zh-cn">Chinese</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                            <option value="ar">Arabic</option>
+                            <option value="hi">Hindi</option>
+                            <option value="bn">Bengali</option>
+                            <option value="pa">Punjabi</option>
+                            <option value="ta">Tamil</option>
+                            <option value="te">Telugu</option>
+                            <option value="mr">Marathi</option>
+                            <option value="gu">Gujarati</option>
+                            <option value="kn">Kannada</option>
+                            <option value="ml">Malayalam</option>
+                            <option value="or">Odia</option>
+                            <option value="sa">Sanskrit</option>
+                            <option value="la">Latin</option>
+                            <option value="grc">Ancient Greek</option>
+                        </select>
+                        <button class="btn btn-view" onclick="detectLanguageAdvanced()" 
+                                style="white-space: nowrap;" title="Detect Language">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Target Language</label>
+                    <select class="form-input" id="nlp-target-language">
+                        <option value="en">🇺🇸 English</option>
+                        <option value="es">🇪🇸 Spanish</option>
+                        <option value="fr">🇫🇷 French</option>
+                        <option value="de">🇩🇪 German</option>
+                        <option value="it">🇮🇹 Italian</option>
+                        <option value="pt">🇵🇹 Portuguese</option>
+                        <option value="ru">🇷🇺 Russian</option>
+                        <option value="zh-cn">🇨🇳 Chinese</option>
+                        <option value="ja">🇯🇵 Japanese</option>
+                        <option value="ko">🇰🇷 Korean</option>
+                        <option value="ar">🇸🇦 Arabic</option>
+                        <option value="hi">🇮🇳 Hindi</option>
+                        <option value="bn">🇧🇩 Bengali</option>
+                        <option value="pa">🇮🇳 Punjabi</option>
+                        <option value="ta">🇮🇳 Tamil</option>
+                        <option value="te">🇮🇳 Telugu</option>
+                        <option value="mr">🇮🇳 Marathi</option>
+                        <option value="gu">🇮🇳 Gujarati</option>
+                        <option value="kn">🇮🇳 Kannada</option>
+                        <option value="ml">🇮🇳 Malayalam</option>
+                        <option value="or">🇮🇳 Odia</option>
+                        <option value="sa">📜 Sanskrit</option>
+                        <option value="la">🏛️ Latin</option>
+                        <option value="grc">🏺 Ancient Greek</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Translation Statistics -->
+            <div class="translation-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="char-count">0</div>
+                    <div class="stat-label">Characters</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="word-count">0</div>
+                    <div class="stat-label">Words</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="detected-lang">-</div>
+                    <div class="stat-label">Detected Language</div>
+                </div>
+            </div>
+
+            <div class="translation-comparison" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div>
+                    <label class="form-label">
+                        📜 Original Text 
+                        <span id="original-stats" style="font-weight: normal; color: #666; font-size: 0.9em;"></span>
+                    </label>
+                    <textarea class="translation-box" id="nlp-original-text" 
+                              placeholder="Paste your manuscript text here or select a manuscript..."
+                              oninput="updateTextStatistics()"></textarea>
+                </div>
+                <div>
+                    <label class="form-label">
+                        🤖 AI Translation 
+                        <span id="translated-stats" style="font-weight: normal; color: #666; font-size: 0.9em;"></span>
+                    </label>
+                    <textarea class="translation-box" id="nlp-translated-text" 
+                              placeholder="AI translation will appear here..." readonly></textarea>
+                </div>
+            </div>
+
+            <!-- Translation Progress -->
+            <div id="translation-progress" style="display: none; margin-bottom: 20px;">
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span id="progress-text">Translating...</span>
+                        <span id="progress-percent">0%</span>
+                    </div>
+                    <div style="background: #e9ecef; border-radius: 5px; height: 8px;">
+                        <div id="progress-bar" style="background: var(--success); height: 100%; width: 0%; border-radius: 5px; transition: width 0.3s ease;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Translation Information -->
+            <div class="translation-meta" style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                <div id="translation-info">
+                    <i class="fas fa-info-circle"></i> 
+                    Ready to translate. Paste text or select a manuscript above.
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="btn btn-translate" onclick="advancedAutoTranslate()" id="translate-btn">
+                    <i class="fas fa-robot"></i> AI Translate
+                </button>
+                <button class="btn btn-view" onclick="saveNlpTranslation()" id="save-btn">
+                    <i class="fas fa-save"></i> Save Translation
+                </button>
+                <button class="btn btn-download" onclick="downloadNlpTranslation()">
+                    <i class="fas fa-download"></i> Download
+                </button>
+                <button class="btn" onclick="clearTranslation()" style="background: #6c757d; color: white;">
+                    <i class="fas fa-broom"></i> Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Topics Section -->
+        <div id="topics" class="content-section">
+            <h2 class="section-title">Topics</h2>
+            <p class="section-subtitle">Browse manuscript topics and categories</p>
+            <div id="topics-container"></div>
+        </div>
+
+        <!-- Locations Section -->
+        <div id="locations" class="content-section">
+            <h2 class="section-title">Locations</h2>
+            <p class="section-subtitle">Explore manuscript repositories worldwide</p>
+            <div id="locations-container"></div>
+        </div>
+
+        <!-- Translations List Section -->
+        <div id="translations-list" class="content-section">
+            <h2 class="section-title">Saved Translations</h2>
+            <p class="section-subtitle">Browse and manage completed translations</p>
+            
+            <div class="search-container">
+                <input type="text" class="search-box" placeholder="Search translations..." onkeyup="searchTranslations()">
+                <button class="refresh-btn" onclick="loadTranslationsList()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+            
+            <div id="translations-container">
+                <!-- Translations will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Powered by Academic Manuscripts Repository | © 2024 | Terms & Conditions | Help & Contact</p>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // Core application logic
+        let currentUser = null;
+        let allTranslations = [];
+
+        // FIXED: Authentication and initialization
+        async function checkAuth() {
+            try {
+                console.log('Checking authentication status...');
+                const response = await fetch('/check-auth');
+                const data = await response.json();
+                
+                console.log('Auth check response:', data);
+                
+                if (data.authenticated) {
+                    currentUser = data.user;
+                    updateUserInterface(data.user);
+                    initializeDashboard();
+                    console.log('User authenticated:', data.user.username);
+                } else {
+                    console.log('User not authenticated, redirecting to login...');
+                    window.location.href = '/login-page';
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                window.location.href = '/login-page';
+            }
+        }
+
+        function updateUserInterface(user) {
+            document.getElementById('user-name').textContent = user.full_name || user.username;
+            document.getElementById('user-role').textContent = user.role;
+            document.getElementById('user-avatar').textContent = (user.full_name || user.username).substring(0, 2).toUpperCase();
+            document.getElementById('welcome-text').textContent = `Welcome, ${user.full_name || user.username}!`;
+
+            // Show/hide features based on role
+            const uploadCard = document.getElementById('upload-card');
+            const translateCard = document.getElementById('translate-card');
+            const translationsCard = document.getElementById('translations-card');
+            const nlpCard = document.getElementById('nlp-card');
+
+            if (user.role === 'Admin') {
+                uploadCard.style.display = 'block';
+                translateCard.style.display = 'block';
+                translationsCard.style.display = 'block';
+                nlpCard.style.display = 'block';
+            } else if (user.role === 'Translator') {
+                uploadCard.style.display = 'none';
+                translateCard.style.display = 'block';
+                translationsCard.style.display = 'block';
+                nlpCard.style.display = 'block';
+            } else {
+                uploadCard.style.display = 'none';
+                translateCard.style.display = 'none';
+                translationsCard.style.display = 'none';
+                nlpCard.style.display = 'none';
+            }
+        }
+
+        function initializeDashboard() {
+            loadManuscripts();
+            loadTopics();
+            loadLocations();
+        }
+
+        // Section navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Load section-specific data
+            if (sectionId === 'translate') {
+                loadTranslationData();
+            } else if (sectionId === 'translations-list') {
+                loadTranslationsList();
+            } else if (sectionId === 'nlp-translate') {
+                loadNlpData();
+            }
+        }
+
+        // Notification system
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        // Load manuscripts
+        async function loadManuscripts() {
+            try {
+                const response = await fetch('/manuscripts');
+                const manuscripts = await response.json();
+                
+                const tbody = document.getElementById('manuscripts-table-body');
+                tbody.innerHTML = '';
+                
+                manuscripts.forEach(ms => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>
+                            <strong>${ms.title}</strong>
+                            <div class="manuscript-meta">
+                                <span class="meta-item">📅 ${new Date(ms.upload_date).toLocaleDateString()}</span>
+                            </div>
+                        </td>
+                        <td>${ms.author || 'Unknown'}</td>
+                        <td>
+                            <span style="background: #e3f2fd; color: #1976d2; padding: 6px 12px; border-radius: 15px; font-size: 0.85em;">
+                                ${ms.topic_name || 'Uncategorized'}
+                            </span>
+                        </td>
+                        <td>${ms.location_name || 'Not specified'}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-view" onclick="viewManuscript(${ms.manuscript_id})">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <button class="btn btn-download" onclick="downloadManuscript(${ms.manuscript_id})">
+                                    <i class="fas fa-download"></i> Download
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading manuscripts:', error);
+                showNotification('Error loading manuscripts', 'error');
+            }
+        }
+
+        // Load topics
+        async function loadTopics() {
+            try {
+                const response = await fetch('/topics');
+                const topics = await response.json();
+                const container = document.getElementById('topics-container');
+                
+                container.innerHTML = topics.map(topic => `
+                    <div class="dashboard-card" style="margin-bottom: 20px;">
+                        <h3 style="color: var(--primary); margin-bottom: 10px;">${topic.topic_name}</h3>
+                        <p style="color: #666;">${topic.description || 'No description available.'}</p>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading topics:', error);
+            }
+        }
+
+        // Load locations
+        async function loadLocations() {
+            try {
+                const response = await fetch('/locations');
+                const locations = await response.json();
+                const container = document.getElementById('locations-container');
+                
+                container.innerHTML = locations.map(location => `
+                    <div class="dashboard-card" style="margin-bottom: 20px;">
+                        <h3 style="color: var(--primary); margin-bottom: 10px;">${location.location_name}</h3>
+                        <p style="color: #666; margin-bottom: 8px;"><strong>Country:</strong> ${location.country || 'Not specified'}</p>
+                        <p style="color: #666;">${location.details || 'No additional details.'}</p>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading locations:', error);
+            }
+        }
+
+        // Search and filter manuscripts
+        function searchManuscripts() {
+            const searchTerm = document.querySelector('.search-box').value.toLowerCase();
+            const rows = document.querySelectorAll('#manuscripts-table-body tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        function filterManuscripts() {
+            const filterValue = document.querySelector('.filter-select').value.toLowerCase();
+            const rows = document.querySelectorAll('#manuscripts-table-body tr');
+            
+            rows.forEach(row => {
+                const topic = row.cells[2].textContent.toLowerCase();
+                row.style.display = !filterValue || topic.includes(filterValue) ? '' : 'none';
+            });
+        }
+
+        // Manuscript actions
+        function viewManuscript(manuscriptId) {
+            window.open(`/preview/${manuscriptId}`, '_blank');
+        }
+
+        function downloadManuscript(manuscriptId) {
+            window.open(`/download/${manuscriptId}`, '_blank');
+        }
+
+        // Fixed Upload Form Handler
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const uploadText = document.getElementById('upload-text');
+            const uploadLoading = document.getElementById('upload-loading');
+            
+            uploadText.style.display = 'none';
+            uploadLoading.style.display = 'inline-block';
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showNotification('Manuscript uploaded successfully!');
+                    this.reset();
+                    loadManuscripts(); // Refresh the manuscripts list
+                } else {
+                    showNotification(result.error || 'Upload failed', 'error');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showNotification('Upload failed: ' + error.message, 'error');
+            } finally {
+                uploadText.style.display = 'inline-block';
+                uploadLoading.style.display = 'none';
+            }
+        });
+
+        // Translation functionality
+        async function loadTranslationData() {
+            try {
+                const response = await fetch('/manuscripts');
+                const manuscripts = await response.json();
+                const dropdown = document.getElementById('translate-manuscript');
+                
+                dropdown.innerHTML = '<option value="">Choose a manuscript to translate</option>';
+                manuscripts.forEach(ms => {
+                    const option = document.createElement('option');
+                    option.value = ms.manuscript_id;
+                    option.textContent = `${ms.title} - ${ms.author || 'Unknown'}`;
+                    dropdown.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading manuscripts for translation:', error);
+            }
+        }
+
+        // FIXED: Save Translation Function - Properly handles NULL manuscript_id
+        async function saveTranslation() {
+            const manuscriptId = document.getElementById('translate-manuscript').value;
+            const translationTitle = document.getElementById('translation-title').value;
+            const translationText = document.getElementById('translation-text').value;
+            const sourceLanguage = document.getElementById('source-language').value;
+            const targetLanguage = document.getElementById('target-language').value;
+            
+            console.log('Saving translation:', {
+                manuscriptId, translationTitle, translationText, sourceLanguage, targetLanguage
+            });
+            
+            // Validate all required fields
+            if (!manuscriptId) {
+                showNotification('Please select a manuscript to translate', 'error');
+                return;
+            }
+            if (!translationTitle.trim()) {
+                showNotification('Please enter a translation title', 'error');
+                return;
+            }
+            if (!translationText.trim()) {
+                showNotification('Please enter translation text', 'error');
+                return;
+            }
+            if (!targetLanguage) {
+                showNotification('Please select target language', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/translate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        manuscript_id: parseInt(manuscriptId),
+                        translation_title: translationTitle,
+                        translated_text: translationText,
+                        language: sourceLanguage,
+                        target_language: targetLanguage,
+                        method: 'Manual'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showNotification('Translation saved successfully!');
+                    // Clear the form
+                    document.getElementById('translation-text').value = '';
+                    document.getElementById('translation-title').value = '';
+                    // Refresh translations list
+                    loadTranslationsList();
+                } else {
+                    console.error('Translation save error:', result);
+                    showNotification(result.error || 'Failed to save translation', 'error');
+                }
+            } catch (error) {
+                console.error('Translation save error:', error);
+                showNotification('Error saving translation: ' + error.message, 'error');
+            }
+        }
+
+        function downloadCurrentTranslation() {
+            const translationText = document.getElementById('translation-text').value;
+            const translationTitle = document.getElementById('translation-title').value;
+            
+            if (!translationText || !translationTitle) {
+                showNotification('No translation text to download', 'error');
+                return;
+            }
+            
+            const blob = new Blob([translationText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${translationTitle}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Enhanced Load Translations List Function
+        async function loadTranslationsList() {
+            try {
+                const response = await fetch('/translations');
+                allTranslations = await response.json();
+                
+                console.log('Loaded translations:', allTranslations);
+                
+                const container = document.getElementById('translations-container');
+                
+                if (allTranslations.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #666;">
+                            <i class="fas fa-book-open" style="font-size: 3em; margin-bottom: 20px; opacity: 0.5;"></i>
+                            <h3>No Translations Yet</h3>
+                            <p>Start by creating your first translation in the Translation Workspace.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = allTranslations.map(translation => `
+                    <div class="dashboard-card" style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <h3 style="color: var(--primary); margin: 0; flex: 1;">${translation.translation_title}</h3>
+                            <span style="background: #3498db; color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.8em;">
+                                ${translation.language} → ${translation.target_language}
+                            </span>
+                        </div>
+                        
+                        <div style="color: #666; margin-bottom: 15px;">
+                            <p style="margin: 5px 0;"><strong>Original:</strong> ${translation.manuscript_title} by ${translation.manuscript_author || 'Unknown'}</p>
+                            <p style="margin: 5px 0;"><strong>Translator:</strong> ${translation.translator_full_name || translation.translator_name}</p>
+                            <p style="margin: 5px 0;"><strong>Created:</strong> ${new Date(translation.created_at).toLocaleDateString()}</p>
+                        </div>
+                        
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; max-height: 150px; overflow: hidden;">
+                            ${translation.translated_text.substring(0, 200)}...
+                            ${translation.translated_text.length > 200 ? 
+                                `<br><small style="color: #666;">+ ${translation.translated_text.length - 200} more characters</small>` : ''}
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-view" onclick="viewTranslation(${translation.translation_id})">
+                                <i class="fas fa-eye"></i> View Full
+                            </button>
+                            <button class="btn btn-download" onclick="downloadTranslation(${translation.translation_id})">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading translations:', error);
+                showNotification('Error loading translations', 'error');
+            }
+        }
+
+        // Enhanced View Translation Function
+        async function viewTranslation(translationId) {
+            try {
+                const response = await fetch(`/translations/${translationId}`);
+                const translation = await response.json();
+                
+                if (response.ok) {
+                    const modal = document.createElement('div');
+                    modal.style.cssText = `
+                        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                        background: rgba(0,0,0,0.8); display: flex; align-items: center; 
+                        justify-content: center; z-index: 10000; backdrop-filter: blur(10px);
+                        padding: 20px;
+                    `;
+                    
+                    modal.innerHTML = `
+                        <div style="background: white; padding: 40px; border-radius: 20px; max-width: 800px; max-height: 80vh; overflow-y: auto; position: relative; width: 100%;">
+                            <button onclick="this.parentElement.parentElement.remove()" 
+                                    style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5em; cursor: pointer; color: #666;">×</button>
+                            
+                            <h2 style="color: var(--primary); margin-bottom: 20px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">${translation.translation_title}</h2>
+                            
+                            <div style="color: #666; margin-bottom: 25px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                                <p style="margin: 8px 0;"><strong>Original Manuscript:</strong> ${translation.manuscript_title} by ${translation.manuscript_author || 'Unknown'}</p>
+                                <p style="margin: 8px 0;"><strong>Translator:</strong> ${translation.translator_full_name || translation.translator_name}</p>
+                                <p style="margin: 8px 0;"><strong>Languages:</strong> ${translation.language} → ${translation.target_language}</p>
+                                <p style="margin: 8px 0;"><strong>Method:</strong> ${translation.method}</p>
+                                <p style="margin: 8px 0;"><strong>Created:</strong> ${new Date(translation.created_at).toLocaleString()}</p>
+                            </div>
+                            
+                            <div style="background: #f8f9fa; padding: 25px; border-radius: 12px; line-height: 1.7; white-space: pre-wrap; font-family: inherit;">
+                                ${translation.translated_text}
+                            </div>
+                            
+                            <div style="margin-top: 25px; text-align: center;">
+                                <button class="btn btn-download" onclick="downloadTranslation(${translationId})" style="margin-right: 10px;">
+                                    <i class="fas fa-download"></i> Download
+                                </button>
+                                <button class="btn btn-view" onclick="this.closest('div[style]').parentElement.remove()">
+                                    <i class="fas fa-times"></i> Close
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(modal);
+                } else {
+                    showNotification('Failed to load translation', 'error');
+                }
+            } catch (error) {
+                console.error('Error viewing translation:', error);
+                showNotification('Error loading translation', 'error');
+            }
+        }
+
+        function downloadTranslation(translationId) {
+            window.open(`/translations/${translationId}/download`, '_blank');
+        }
+
+        // Search translations
+        function searchTranslations() {
+            const searchTerm = document.querySelector('#translations-list .search-box').value.toLowerCase();
+            const filteredTranslations = allTranslations.filter(translation => 
+                translation.translation_title.toLowerCase().includes(searchTerm) ||
+                translation.manuscript_title.toLowerCase().includes(searchTerm) ||
+                translation.translated_text.toLowerCase().includes(searchTerm)
+            );
+            
+            const container = document.getElementById('translations-container');
+            if (filteredTranslations.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No translations found matching your search.</p>';
+            } else {
+                container.innerHTML = filteredTranslations.map(translation => `
+                    <div class="dashboard-card" style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <h3 style="color: var(--primary); margin: 0; flex: 1;">${translation.translation_title}</h3>
+                            <span style="background: #3498db; color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.8em;">
+                                ${translation.language} → ${translation.target_language}
+                            </span>
+                        </div>
+                        
+                        <div style="color: #666; margin-bottom: 15px;">
+                            <p style="margin: 5px 0;"><strong>Original:</strong> ${translation.manuscript_title} by ${translation.manuscript_author || 'Unknown'}</p>
+                            <p style="margin: 5px 0;"><strong>Translator:</strong> ${translation.translator_full_name || translation.translator_name}</p>
+                            <p style="margin: 5px 0;"><strong>Created:</strong> ${new Date(translation.created_at).toLocaleDateString()}</p>
+                        </div>
+                        
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; max-height: 150px; overflow: hidden;">
+                            ${translation.translated_text.substring(0, 200)}...
+                            ${translation.translated_text.length > 200 ? 
+                                `<br><small style="color: #666;">+ ${translation.translated_text.length - 200} more characters</small>` : ''}
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-view" onclick="viewTranslation(${translation.translation_id})">
+                                <i class="fas fa-eye"></i> View Full
+                            </button>
+                            <button class="btn btn-download" onclick="downloadTranslation(${translation.translation_id})">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // ==================== NLP TRANSLATION FUNCTIONS ====================
+
+        // NLP Translation Functions
+        async function loadNlpData() {
+            try {
+                const response = await fetch('/manuscripts');
+                const manuscripts = await response.json();
+                const dropdown = document.getElementById('nlp-manuscript');
+                
+                dropdown.innerHTML = '<option value="">Choose a manuscript to translate</option>';
+                manuscripts.forEach(ms => {
+                    const option = document.createElement('option');
+                    option.value = ms.manuscript_id;
+                    option.textContent = `${ms.title} - ${ms.author || 'Unknown'}`;
+                    dropdown.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading manuscripts for NLP:', error);
+            }
+        }
+
+        // Update text statistics
+        function updateTextStatistics() {
+            const originalText = document.getElementById('nlp-original-text').value;
+            const translatedText = document.getElementById('nlp-translated-text').value;
+            
+            // Character and word counts
+            const originalChars = originalText.length;
+            const originalWords = originalText.trim() ? originalText.trim().split(/\s+/).length : 0;
+            const translatedChars = translatedText.length;
+            const translatedWords = translatedText.trim() ? translatedText.trim().split(/\s+/).length : 0;
+            
+            // Update statistics
+            document.getElementById('char-count').textContent = originalChars.toLocaleString();
+            document.getElementById('word-count').textContent = originalWords.toLocaleString();
+            
+            // Update text area stats
+            document.getElementById('original-stats').textContent = `(${originalWords} words, ${originalChars} chars)`;
+            document.getElementById('translated-stats').textContent = `(${translatedWords} words, ${translatedChars} chars)`;
+            
+            // Auto-detect language if text is long enough
+            if (originalChars > 10) {
+                setTimeout(() => detectLanguageAdvanced(), 1000);
+            }
+        }
+
+        async function detectLanguageAdvanced() {
+            const originalText = document.getElementById('nlp-original-text').value;
+            
+            if (!originalText.trim()) {
+                showNotification('Please load or enter text to detect language', 'error');
+                return;
+            }
+            
+            try {
+                document.getElementById('detected-lang').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                
+                const response = await fetch('/api/translate/detect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ text: originalText })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    document.getElementById('detected-lang').textContent = result.language_name;
+                    document.getElementById('nlp-source-language').value = result.language_code;
+                    
+                    document.getElementById('translation-info').innerHTML = `
+                        <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                        Detected language: <strong>${result.language_name}</strong> 
+                        (${result.confidence ? (result.confidence * 100).toFixed(1) + '% confidence' : 'auto-detected'})
+                    `;
+                } else {
+                    document.getElementById('detected-lang').textContent = '-';
+                    showNotification(result.error || 'Language detection failed', 'error');
+                }
+            } catch (error) {
+                console.error('Language detection error:', error);
+                document.getElementById('detected-lang').textContent = '-';
+                showNotification('Language detection failed', 'error');
+            }
+        }
+
+        async function advancedAutoTranslate() {
+            const originalText = document.getElementById('nlp-original-text').value;
+            const sourceLanguage = document.getElementById('nlp-source-language').value;
+            const targetLanguage = document.getElementById('nlp-target-language').value;
+            
+            if (!originalText.trim()) {
+                showNotification('Please load or enter text to translate', 'error');
+                return;
+            }
+            
+            if (sourceLanguage === targetLanguage && sourceLanguage !== 'auto') {
+                showNotification('Source and target languages cannot be the same', 'error');
+                return;
+            }
+            
+            try {
+                // Show progress
+                const progressElement = document.getElementById('translation-progress');
+                const progressBar = document.getElementById('progress-bar');
+                const progressText = document.getElementById('progress-text');
+                const progressPercent = document.getElementById('progress-percent');
+                
+                progressElement.style.display = 'block';
+                progressBar.style.width = '30%';
+                progressText.textContent = 'Sending request to translation service...';
+                progressPercent.textContent = '30%';
+                
+                // Disable buttons during translation
+                document.getElementById('translate-btn').disabled = true;
+                document.getElementById('save-btn').disabled = true;
+                
+                const response = await fetch('/api/translate/advanced', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        text: originalText,
+                        source_language: sourceLanguage,
+                        target_language: targetLanguage
+                    })
+                });
+                
+                progressBar.style.width = '70%';
+                progressText.textContent = 'Processing translation...';
+                progressPercent.textContent = '70%';
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    document.getElementById('nlp-translated-text').value = result.translated_text;
+                    
+                    progressBar.style.width = '100%';
+                    progressText.textContent = 'Translation completed!';
+                    progressPercent.textContent = '100%';
+                    
+                    document.getElementById('translation-info').innerHTML = `
+                        <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                        Translation completed using ${result.method}. 
+                        Source: ${result.source_language_name || result.source_language} → Target: ${result.target_language_name || result.target_language}
+                        ${result.note ? `<br><small>${result.note}</small>` : ''}
+                    `;
+                    
+                    // Update statistics
+                    updateTextStatistics();
+                    
+                    // Hide progress after success
+                    setTimeout(() => {
+                        progressElement.style.display = 'none';
+                    }, 2000);
+                    
+                } else {
+                    progressElement.style.display = 'none';
+                    
+                    // Handle fallback case where original text is returned
+                    if (result.fallback_used && result.translated_text) {
+                        document.getElementById('nlp-translated-text').value = result.translated_text;
+                        showNotification('Translation service unavailable. Using original text with error notice.', 'warning');
+                        document.getElementById('translation-info').innerHTML = `
+                            <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
+                            Translation service unavailable. Original text preserved.
+                            ${result.error ? `<br><small>Error: ${result.error}</small>` : ''}
+                        `;
+                    } else {
+                        showNotification(result.error || 'Auto translation failed', 'error');
+                        document.getElementById('translation-info').innerHTML = `
+                            <i class="fas fa-exclamation-circle" style="color: var(--accent);"></i>
+                            Translation failed: ${result.error || 'Unknown error'}
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Auto translation error:', error);
+                document.getElementById('translation-progress').style.display = 'none';
+                
+                // Fallback: preserve original text
+                document.getElementById('nlp-translated-text').value = originalText;
+                showNotification('Translation service error. Using original text as fallback.', 'warning');
+                document.getElementById('translation-info').innerHTML = `
+                    <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
+                    Translation service temporarily unavailable. Original text preserved.
+                    <br><small>Error: ${error.message}</small>
+                `;
+            } finally {
+                // Re-enable buttons
+                document.getElementById('translate-btn').disabled = false;
+                document.getElementById('save-btn').disabled = false;
+            }
+        }
+
+        // FIXED: Save NLP Translation Function - Properly handles NULL manuscript_id
+        async function saveNlpTranslation() {
+            const manuscriptId = document.getElementById('nlp-manuscript').value;
+            const translatedText = document.getElementById('nlp-translated-text').value;
+            const sourceLanguage = document.getElementById('nlp-source-language').value;
+            const targetLanguage = document.getElementById('nlp-target-language').value;
+            
+            if (!translatedText.trim()) {
+                showNotification('Please complete translation before saving', 'error');
+                return;
+            }
+            
+            // If no manuscript selected, create a generic title
+            let translationTitle;
+            if (manuscriptId) {
+                const manuscriptSelect = document.getElementById('nlp-manuscript');
+                const selectedText = manuscriptSelect.options[manuscriptSelect.selectedIndex].text;
+                translationTitle = `AI Translation: ${selectedText} (${targetLanguage})`;
+            } else {
+                const originalText = document.getElementById('nlp-original-text').value;
+                const previewText = originalText.substring(0, 50) + (originalText.length > 50 ? '...' : '');
+                translationTitle = `AI Translation: ${previewText} (${targetLanguage})`;
+            }
+            
+            try {
+                const response = await fetch('/translate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        manuscript_id: manuscriptId || null, // Send null if no manuscript selected
+                        translation_title: translationTitle,
+                        translated_text: translatedText,
+                        language: sourceLanguage,
+                        target_language: targetLanguage,
+                        method: 'NLP'  // Changed from 'AI (Google Translate)' to 'NLP' to match ENUM
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showNotification('AI translation saved successfully!');
+                    loadTranslationsList();
+                    
+                    // Clear the form after successful save
+                    document.getElementById('nlp-translated-text').value = '';
+                    document.getElementById('nlp-original-text').value = '';
+                    updateTextStatistics();
+                    
+                } else {
+                    showNotification(result.error || 'Failed to save AI translation', 'error');
+                }
+            } catch (error) {
+                console.error('Save NLP translation error:', error);
+                showNotification('Error saving AI translation: ' + error.message, 'error');
+            }
+        }
+
+        function downloadNlpTranslation() {
+            const translatedText = document.getElementById('nlp-translated-text').value;
+            const targetLanguage = document.getElementById('nlp-target-language').value;
+            
+            if (!translatedText) {
+                showNotification('No translation text to download', 'error');
+                return;
+            }
+            
+            const blob = new Blob([translatedText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ai_translation_${targetLanguage}_${new Date().getTime()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showNotification('Translation downloaded successfully!');
+        }
+
+        function clearTranslation() {
+            document.getElementById('nlp-original-text').value = '';
+            document.getElementById('nlp-translated-text').value = '';
+            document.getElementById('nlp-source-language').value = 'auto';
+            document.getElementById('translation-info').innerHTML = `
+                <i class="fas fa-info-circle"></i> 
+                Ready to translate. Paste text or select a manuscript above.
+            `;
+            updateTextStatistics();
+        }
+
+        // Update manuscript selection to load text
+        document.getElementById('nlp-manuscript').addEventListener('change', async function() {
+            const manuscriptId = this.value;
+            if (manuscriptId) {
+                // In a real implementation, you would fetch the manuscript text content
+                // For now, we'll use a placeholder with sample academic text
+                const sampleTexts = [
+                    "The celestial bodies align in the firmament according to mathematical principles that govern the universe. Ancient astronomers observed these patterns and recorded them in manuscripts that have survived through the ages.",
+                    "Philosophical treatises from classical antiquity explore the nature of existence, knowledge, and ethics. These works form the foundation of Western philosophical thought and continue to influence modern discourse.",
+                    "Medical manuscripts from the medieval period contain detailed descriptions of herbal remedies, surgical procedures, and anatomical knowledge. These texts represent the accumulated wisdom of generations of healers.",
+                    "Mathematical proofs and geometric constructions demonstrate the intellectual achievements of ancient civilizations. The precision and elegance of these works continue to inspire mathematicians today."
+                ];
+                
+                const randomText = sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
+                document.getElementById('nlp-original-text').value = randomText;
+                
+                // Update statistics and auto-detect language
+                updateTextStatistics();
+                
+                showNotification('Sample manuscript text loaded. In a full implementation, this would extract text from the actual manuscript file.');
+            } else {
+                document.getElementById('nlp-original-text').value = '';
+                document.getElementById('nlp-translated-text').value = '';
+                updateTextStatistics();
+            }
+        });
+
+        // User actions
+        function viewProfile() {
+            if (currentUser) {
+                alert(`User Profile:\nName: ${currentUser.full_name}\nUsername: ${currentUser.username}\nRole: ${currentUser.role}`);
+            }
+        }
+
+        async function logout() {
+            try {
+                const response = await fetch('/logout', { method: 'POST' });
+                if (response.ok) {
+                    window.location.href = '/login-page';
+                }
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', checkAuth);
+    </script>
+</body>
+</html>

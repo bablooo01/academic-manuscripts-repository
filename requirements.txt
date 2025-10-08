@@ -1,0 +1,7 @@
+Flask
+gunicorn
+mysql-connector-python
+azure-storage-blob
+azure-core
+googletrans==4.0.0rc1
+

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Manuscript Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --success: #27ae60;
+            --light: #ecf0f1;
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--gradient);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px;
+            border-left: 6px solid var(--secondary);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .login-title {
+            color: var(--primary);
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .login-subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+            transform: scale(1.02);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: var(--primary);
+            border: 2px solid #e0e0e0;
+            margin-top: 15px;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .login-links {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .login-link {
+            color: var(--secondary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-link:hover {
+            text-decoration: underline;
+        }
+
+        .notification {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .notification.error {
+            background: #fee;
+            color: #c0392b;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .notification.success {
+            background: #efe;
+            color: #27ae60;
+            border-left: 4px solid #2ecc71;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--secondary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .role-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .role-option {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .role-option.selected {
+            border-color: var(--secondary);
+            background: #e3f2fd;
+            color: var(--secondary);
+            font-weight: 600;
+        }
+
+        .role-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .back-home {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .back-link {
+            color: var(--primary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .back-link:hover {
+            color: var(--secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1 class="login-title">Manuscript Management</h1>
+            <p class="login-subtitle">Sign in to your account</p>
+        </div>
+
+        <div id="notification" class="notification"></div>
+
+        <!-- Login Form -->
+        <form id="loginForm">
+            <div class="form-group">
+                <label class="form-label" for="username">
+                    <i class="fas fa-user"></i> Username
+                </label>
+                <input type="text" id="username" class="form-input" placeholder="Enter your username" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">
+                    <i class="fas fa-lock"></i> Password
+                </label>
+                <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="login-btn">
+                <span id="login-text">Sign In</span>
+                <span id="login-loading" class="loading" style="display: none;"></span>
+            </button>
+        </form>
+
+        <!-- Register Form (Hidden by default) -->
+        <form id="registerForm" style="display: none;">
+            <div class="form-group">
+                <label class="form-label" for="reg-username">
+                    <i class="fas fa-user"></i> Username
+                </label>
+                <input type="text" id="reg-username" class="form-input" placeholder="Choose a username" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="reg-email">
+                    <i class="fas fa-envelope"></i> Email
+                </label>
+                <input type="email" id="reg-email" class="form-input" placeholder="Enter your email" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="reg-fullname">
+                    <i class="fas fa-id-card"></i> Full Name
+                </label>
+                <input type="text" id="reg-fullname" class="form-input" placeholder="Enter your full name">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Select Role</label>
+                <div class="role-selector">
+                    <div class="role-option" data-role="Researcher" onclick="selectRole(this)">
+                        <i class="fas fa-search"></i><br>
+                        Researcher
+                    </div>
+                    <div class="role-option" data-role="Translator" onclick="selectRole(this)">
+                        <i class="fas fa-language"></i><br>
+                        Translator
+                    </div>
+                    <div class="role-option" data-role="Admin" onclick="selectRole(this)">
+                        <i class="fas fa-cog"></i><br>
+                        Admin
+                    </div>
+                </div>
+                <input type="hidden" id="reg-role" value="Researcher" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="reg-password">
+                    <i class="fas fa-lock"></i> Password
+                </label>
+                <input type="password" id="reg-password" class="form-input" placeholder="Create a password" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="reg-confirm-password">
+                    <i class="fas fa-lock"></i> Confirm Password
+                </label>
+                <input type="password" id="reg-confirm-password" class="form-input" placeholder="Confirm your password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="register-btn">
+                <span id="register-text">Create Account</span>
+                <span id="register-loading" class="loading" style="display: none;"></span>
+            </button>
+        </form>
+
+        <div class="login-links">
+            <a href="#" class="login-link" id="toggle-form">Don't have an account? Sign up</a>
+        </div>
+
+        <div class="back-home">
+            <a href="/" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let isLoginForm = true;
+        let selectedRole = 'Researcher';
+
+        function showNotification(message, type = 'error') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 5000);
+        }
+
+        function selectRole(element) {
+            // Remove selected class from all options
+            document.querySelectorAll('.role-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked option
+            element.classList.add('selected');
+            selectedRole = element.getAttribute('data-role');
+            document.getElementById('reg-role').value = selectedRole;
+        }
+
+        function toggleForm() {
+            isLoginForm = !isLoginForm;
+            
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const toggleLink = document.getElementById('toggle-form');
+            const notification = document.getElementById('notification');
+            
+            if (isLoginForm) {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                toggleLink.textContent = "Don't have an account? Sign up";
+                notification.style.display = 'none';
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                toggleLink.textContent = "Already have an account? Sign in";
+                notification.style.display = 'none';
+                
+                // Set default role selection
+                document.querySelector(`.role-option[data-role="${selectedRole}"]`).classList.add('selected');
+            }
+        }
+
+        // Login form submission
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('login-btn');
+            const loginText = document.getElementById('login-text');
+            const loginLoading = document.getElementById('login-loading');
+            
+            if (!username || !password) {
+                showNotification('Please fill in all fields');
+                return;
+            }
+            
+            // Show loading state
+            loginText.style.display = 'none';
+            loginLoading.style.display = 'inline-block';
+            loginBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showNotification('Login successful! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                } else {
+                    showNotification(result.error || 'Login failed');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showNotification('Login failed: ' + error.message);
+            } finally {
+                // Reset loading state
+                loginText.style.display = 'inline-block';
+                loginLoading.style.display = 'none';
+                loginBtn.disabled = false;
+            }
+        });
+
+        // Register form submission
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const fullName = document.getElementById('reg-fullname').value;
+            const role = document.getElementById('reg-role').value;
+            const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('reg-confirm-password').value;
+            
+            const registerBtn = document.getElementById('register-btn');
+            const registerText = document.getElementById('register-text');
+            const registerLoading = document.getElementById('register-loading');
+            
+            // Validation
+            if (!username || !email || !password || !confirmPassword) {
+                showNotification('Please fill in all required fields');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showNotification('Passwords do not match');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showNotification('Password must be at least 6 characters long');
+                return;
+            }
+            
+            // Show loading state
+            registerText.style.display = 'none';
+            registerLoading.style.display = 'inline-block';
+            registerBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        email: email,
+                        password: password,
+                        full_name: fullName,
+                        role: role
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showNotification('Registration successful! You can now login.', 'success');
+                    setTimeout(() => {
+                        toggleForm(); // Switch back to login form
+                    }, 2000);
+                } else {
+                    showNotification(result.error || 'Registration failed');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showNotification('Registration failed: ' + error.message);
+            } finally {
+                // Reset loading state
+                registerText.style.display = 'inline-block';
+                registerLoading.style.display = 'none';
+                registerBtn.disabled = false;
+            }
+        });
+
+        // Initialize
+        document.getElementById('toggle-form').addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleForm();
+        });
+
+        // Set default role selection
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelector('.role-option[data-role="Researcher"]').classList.add('selected');
+        });
+    </script>
+</body>
+</html>
