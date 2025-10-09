@@ -25,13 +25,13 @@ logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 app.secret_key = 'manuscript-secret-key-2024'
 
-# Session configuration
+# Session configuration - FIXED: Added proper session configuration
 app.config.update(
     SESSION_COOKIE_NAME='manuscript_session',
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=False,
+    SESSION_COOKIE_SECURE=False,  # Set to True in production with HTTPS
     SESSION_COOKIE_SAMESITE='Lax',
-    PERMANENT_SESSION_LIFETIME=86400,
+    PERMANENT_SESSION_LIFETIME=datetime.timedelta(days=7),
     SESSION_REFRESH_EACH_REQUEST=True
 )
 
@@ -181,14 +181,14 @@ class AdvancedTranslationService:
                 'en': 'english', 'es': 'spanish', 'fr': 'french', 'de': 'german',
                 'it': 'italian', 'pt': 'portuguese', 'ru': 'russian', 
                 'zh': 'chinese', 'ja': 'japanese', 'ar': 'arabic', 'hi': 'hindi',
-                'la': 'latin', 'el': 'greek'
+                'la': 'latin', 'el': 'greek', 'sa': 'sanskrit', 'grc': 'ancient greek'
             }
     
     def map_language_code(self, code):
         mapping = {
             'zh-cn': 'zh',
-            'sa': 'hi',
-            'grc': 'el',
+            'sa': 'hi',  # Map Sanskrit to Hindi for translation
+            'grc': 'el',  # Map Ancient Greek to Modern Greek
         }
         return mapping.get(code, code)
     
@@ -206,25 +206,52 @@ class AdvancedTranslationService:
             mapped_target = self.map_language_code(target_lang)
             mapped_source = self.map_language_code(source_lang) if source_lang != 'auto' else 'auto'
             
+            # Handle unsupported languages
+            if mapped_source != 'auto' and mapped_source not in self.supported_languages:
+                return {
+                    'success': False,
+                    'error': f'Source language {source_lang} not supported for translation',
+                    'translated_text': text,
+                    'fallback_used': True
+                }
+            
+            if mapped_target not in self.supported_languages:
+                return {
+                    'success': False,
+                    'error': f'Target language {target_lang} not supported',
+                    'translated_text': text,
+                    'fallback_used': True
+                }
+            
             if len(text) > 4500:
                 return self._translate_large_text(text, mapped_target, mapped_source)
             
-            if mapped_source == 'auto':
-                translated = GoogleTranslator(target=mapped_target).translate(text)
-            else:
-                translated = GoogleTranslator(source=mapped_source, target=mapped_target).translate(text)
-            
-            return {
-                'success': True,
-                'translated_text': translated,
-                'source_language': source_lang,
-                'source_language_name': self.supported_languages.get(source_lang, 'Unknown'),
-                'target_language': target_lang,
-                'target_language_name': self.supported_languages.get(target_lang, 'Unknown'),
-                'confidence': 'high',
-                'method': 'Google Translate',
-                'characters_translated': len(text)
-            }
+            try:
+                if mapped_source == 'auto':
+                    translated = GoogleTranslator(target=mapped_target).translate(text)
+                else:
+                    translated = GoogleTranslator(source=mapped_source, target=mapped_target).translate(text)
+                
+                return {
+                    'success': True,
+                    'translated_text': translated,
+                    'source_language': source_lang,
+                    'source_language_name': self.supported_languages.get(source_lang, 'Unknown'),
+                    'target_language': target_lang,
+                    'target_language_name': self.supported_languages.get(target_lang, 'Unknown'),
+                    'confidence': 'high',
+                    'method': 'Google Translate',
+                    'characters_translated': len(text)
+                }
+            except Exception as translate_error:
+                app.logger.error(f"Translation API error: {translate_error}")
+                return {
+                    'success': False,
+                    'error': f'Translation service error: {str(translate_error)}',
+                    'translated_text': text,
+                    'method': 'Google Translate',
+                    'fallback_used': True
+                }
             
         except Exception as e:
             logging.error(f"Translation error: {str(e)}")
@@ -249,7 +276,8 @@ class AdvancedTranslationService:
                         result = GoogleTranslator(source=source_lang, target=target_lang).translate(chunk)
                     translated_chunks.append(result)
                 except Exception as e:
-                    translated_chunks.append(chunk)
+                    app.logger.warning(f"Chunk {i} translation failed: {e}")
+                    translated_chunks.append(chunk)  # Fallback to original text
             
             return {
                 'success': True,
@@ -311,24 +339,49 @@ class AdvancedTranslationService:
                 }
             
             clean_text = text.strip()
-            if len(clean_text) < 3:
-                return {
-                    'success': False,
-                    'error': 'Text too short for language detection',
-                    'language_code': 'unknown',
-                    'language_name': 'Unknown'
-                }
+            
+            # Simple language detection based on common words
+            common_words = {
+                'en': ['the', 'and', 'of', 'to', 'a', 'in', 'is', 'you', 'that', 'it'],
+                'es': ['el', 'la', 'de', 'que', 'y', 'en', 'un', 'es', 'se', 'no'],
+                'fr': ['le', 'la', 'de', 'et', 'à', 'en', 'un', 'est', 'que', 'dans'],
+                'de': ['der', 'die', 'das', 'und', 'in', 'den', 'von', 'zu', 'dem', 'mit'],
+                'it': ['il', 'la', 'di', 'e', 'in', 'che', 'un', 'è', 'per', 'sono'],
+                'la': ['et', 'in', 'non', 'sed', 'ad', 'est', 'quod', 'cum', 'ex', 'ut'],
+                'grc': ['και', 'ο', 'του', 'το', 'εν', 'δε', 'της', 'τα', 'επι', 'ειναι'],
+                'ar': ['في', 'من', 'الى', 'على', 'ان', 'لا', 'ما', 'هو', 'هي', 'كان']
+            }
+            
+            text_lower = clean_text.lower()
+            scores = {}
+            
+            for lang, words in common_words.items():
+                score = sum(1 for word in words if word in text_lower)
+                scores[lang] = score
+            
+            detected_lang = max(scores, key=scores.get) if scores else 'en'
+            
+            # If no common words found, default to English
+            if scores[detected_lang] == 0:
+                detected_lang = 'en'
+            
+            language_names = {
+                'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German',
+                'it': 'Italian', 'la': 'Latin', 'grc': 'Ancient Greek', 'ar': 'Arabic',
+                'sa': 'Sanskrit', 'zh': 'Chinese', 'ja': 'Japanese', 'hi': 'Hindi'
+            }
             
             return {
                 'success': True,
-                'language_code': 'en',
-                'language_name': 'English',
-                'confidence': 0.5,
-                'reliable': False,
-                'note': 'Language detection is limited in this version'
+                'language_code': detected_lang,
+                'language_name': language_names.get(detected_lang, 'Unknown'),
+                'confidence': min(scores[detected_lang] / 10, 1.0) if detected_lang in scores else 0.1,
+                'reliable': scores.get(detected_lang, 0) > 2,
+                'note': 'Basic language detection based on common words'
             }
                 
         except Exception as e:
+            app.logger.error(f"Language detection error: {e}")
             return {
                 'success': False,
                 'error': f'Language detection failed: {str(e)}',
@@ -471,16 +524,22 @@ def login():
                 user = cursor.fetchone()
                 
                 if user and user['password_hash'] == password_hash:
+                    # FIXED: Update last_login timestamp
                     cursor.execute("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE user_id = ?", (user['user_id'],))
                     conn.commit()
                     
+                    # FIXED: Set session as permanent and store user data
                     session.permanent = True
                     session['user_id'] = user['user_id']
                     session['username'] = user['username']
                     session['role'] = user['role']
                     session['full_name'] = user['full_name']
+                    session['email'] = user['email']
                     
-                    app.logger.info(f"User {username} logged in successfully")
+                    # FIXED: Ensure session is saved
+                    session.modified = True
+                    
+                    app.logger.info(f"User {username} logged in successfully. Session: {dict(session)}")
                     
                     return jsonify({
                         "message": "Login successful",
@@ -492,6 +551,7 @@ def login():
                         }
                     })
                 else:
+                    app.logger.warning(f"Failed login attempt for username: {username}")
                     return jsonify({"error": "Invalid credentials"}), 401
                     
         except Exception as e:
@@ -503,7 +563,10 @@ def login():
 
 @app.route('/logout', methods=['POST'])
 def logout():
+    # FIXED: Proper session clearing
+    user_id = session.get('user_id')
     session.clear()
+    app.logger.info(f"User {user_id} logged out successfully")
     return jsonify({"message": "Logged out successfully"})
 
 @app.route('/user/profile', methods=['GET'])
@@ -651,7 +714,7 @@ def upload_manuscript():
 @app.route('/preview/<int:manuscript_id>')
 @login_required
 def preview_manuscript(manuscript_id):
-    """Enhanced preview with multiple viewing options"""
+    """Enhanced preview with multiple viewing options - FIXED: Removed Direct View and New Tab options"""
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
@@ -667,7 +730,7 @@ def preview_manuscript(manuscript_id):
             if not file_url:
                 return jsonify({"error": "No file URL available"}), 404
             
-            # Create a preview page with multiple options
+            # Create a preview page with Google Docs Viewer only
             html_content = f"""
             <!DOCTYPE html>
             <html>
@@ -708,48 +771,11 @@ def preview_manuscript(manuscript_id):
                         color: #666;
                         font-size: 1.1em;
                     }}
-                    .preview-options {{
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                        gap: 20px;
-                        margin-bottom: 30px;
-                    }}
-                    .option-card {{
-                        background: white;
-                        padding: 25px;
-                        border-radius: 15px;
-                        text-align: center;
-                        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-                        border: 2px solid transparent;
-                        transition: all 0.3s ease;
-                        cursor: pointer;
-                    }}
-                    .option-card:hover {{
-                        transform: translateY(-5px);
-                        border-color: #3498db;
-                        box-shadow: 0 15px 40px rgba(52, 152, 219, 0.2);
-                    }}
-                    .option-icon {{
-                        font-size: 3em;
-                        margin-bottom: 15px;
-                        color: #3498db;
-                    }}
-                    .option-title {{
-                        font-size: 1.3em;
-                        font-weight: 600;
-                        color: #2c3e50;
-                        margin-bottom: 10px;
-                    }}
-                    .option-desc {{
-                        color: #666;
-                        line-height: 1.5;
-                    }}
                     .viewer-container {{
                         background: white;
                         border-radius: 15px;
                         padding: 20px;
                         margin-top: 20px;
-                        display: none;
                     }}
                     .viewer-frame {{
                         width: 100%;
@@ -793,31 +819,12 @@ def preview_manuscript(manuscript_id):
                     <div class="preview-card">
                         <div class="header">
                             <h1>📖 {title}</h1>
-                            <p>Choose how you want to view this manuscript</p>
+                            <p>Viewing manuscript via Google Docs Viewer</p>
                         </div>
                         
-                        <div class="preview-options">
-                            <div class="option-card" onclick="openDirectView()">
-                                <div class="option-icon">🔗</div>
-                                <div class="option-title">Direct View</div>
-                                <div class="option-desc">Open the file directly in your browser</div>
-                            </div>
-                            
-                            <div class="option-card" onclick="openGoogleViewer()">
-                                <div class="option-icon">📄</div>
-                                <div class="option-title">Google Docs Viewer</div>
-                                <div class="option-desc">Use Google's PDF viewer (recommended for PDFs)</div>
-                            </div>
-                            
-                            <div class="option-card" onclick="openNewTab()">
-                                <div class="option-icon">🔄</div>
-                                <div class="option-title">New Tab</div>
-                                <div class="option-desc">Open in a new browser tab</div>
-                            </div>
-                        </div>
-                        
-                        <div id="viewer-container" class="viewer-container">
-                            <iframe id="viewer-frame" class="viewer-frame" src=""></iframe>
+                        <div class="viewer-container">
+                            <iframe id="viewer-frame" class="viewer-frame" 
+                                    src="https://docs.google.com/gview?url={file_url}&embedded=true"></iframe>
                         </div>
                         
                         <div class="action-buttons">
@@ -832,28 +839,12 @@ def preview_manuscript(manuscript_id):
                 </div>
                 
                 <script>
-                    const fileUrl = "{file_url}";
-                    
-                    function openDirectView() {{
-                        // Try to open directly with inline disposition
-                        window.open(fileUrl, '_blank');
-                    }}
-                    
-                    function openGoogleViewer() {{
-                        // Use Google Docs viewer for better PDF rendering
-                        const googleViewerUrl = `https://docs.google.com/gview?url=${{fileUrl}}&embedded=true`;
-                        document.getElementById('viewer-frame').src = googleViewerUrl;
-                        document.getElementById('viewer-container').style.display = 'block';
-                    }}
-                    
-                    function openNewTab() {{
-                        window.open(fileUrl, '_blank');
-                    }}
-                    
-                    // Auto-open Google Viewer for PDF files
-                    if (fileUrl.toLowerCase().endsWith('.pdf')) {{
-                        setTimeout(() => openGoogleViewer(), 500);
-                    }}
+                    // Auto-resize iframe based on content
+                    window.addEventListener('message', function(event) {{
+                        if (event.data && event.data.type === 'iframe-height') {{
+                            document.getElementById('viewer-frame').style.height = event.data.height + 'px';
+                        }}
+                    }});
                 </script>
             </body>
             </html>
@@ -887,25 +878,10 @@ def download_manuscript(manuscript_id):
                 response = redirect(file_url)
                 # Try to suggest download filename
                 safe_title = secure_filename(title)
-                response.headers['Content-Disposition'] = f'attachment; filename="{safe_title}.pdf"'
+                file_extension = file_url.split('.')[-1].lower() if '.' in file_url else 'pdf'
+                response.headers['Content-Disposition'] = f'attachment; filename="{safe_title}.{file_extension}"'
                 return response
             
-            # If it's a local path (this won't work on Render for uploaded files)
-            elif file_url and file_url.startswith('/uploads/'):
-                filename = file_url.split('/')[-1]
-                uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
-                file_path = os.path.join(uploads_dir, filename)
-                
-                if os.path.exists(file_path):
-                    safe_title = secure_filename(title)
-                    return send_from_directory(
-                        uploads_dir, 
-                        filename, 
-                        as_attachment=True,
-                        download_name=f"{safe_title}.{filename.split('.')[-1]}"
-                    )
-                else:
-                    return jsonify({"error": "File not found on server. On Render cloud, files must be stored in Azure Blob Storage."}), 404
             else:
                 return jsonify({"error": "Invalid file URL or file not accessible"}), 404
                 
@@ -1154,6 +1130,39 @@ def advanced_translate():
             "error": f"Translation service error: {str(e)}",
             "translated_text": data.get('text', '') if 'data' in locals() else '',
             "fallback_used": True
+        }), 500
+
+# FIXED: Add language detection endpoint
+@app.route('/api/translate/detect', methods=['POST'])
+@translator_required
+def detect_language():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No JSON data received"
+            }), 400
+            
+        text = data.get('text', '').strip()
+        
+        if not text:
+            return jsonify({
+                "success": False,
+                "error": "No text provided for language detection"
+            }), 400
+        
+        result = translation_service.detect_language_advanced(text)
+        
+        return jsonify(result)
+            
+    except Exception as e:
+        logging.error(f"Language detection endpoint error: {e}")
+        return jsonify({
+            "success": False,
+            "error": f"Language detection failed: {str(e)}",
+            "language_code": 'unknown',
+            "language_name": 'Unknown'
         }), 500
 
 @app.route('/api/languages/detailed', methods=['GET'])
