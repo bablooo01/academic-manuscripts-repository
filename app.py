@@ -368,7 +368,7 @@ class AdvancedTranslationService:
                 'it': ['il', 'la', 'di', 'e', 'in', 'che', 'un', 'è', 'per', 'sono'],
                 'la': ['et', 'in', 'non', 'sed', 'ad', 'est', 'quod', 'cum', 'ex', 'ut'],
                 'hi': ['और', 'से', 'के', 'में', 'है', 'को', 'का', 'एक', 'ने', 'यह'],
-                'ar': ['في', 'من', 'الى', 'على', 'ان', 'لا', 'ما', 'هو', 'هي', 'كان']
+                'ar': ['في', 'من', 'الى', 'على', 'ان', 'لا', 'ما', 'हो', 'هي', 'كان']
             }
             
             text_lower = clean_text.lower()
@@ -726,11 +726,11 @@ def upload_manuscript():
 @app.route('/preview/<int:manuscript_id>')
 @login_required
 def preview_manuscript(manuscript_id):
-    """Enhanced preview with multiple viewing options"""
+    """Enhanced preview with Google Docs Viewer only - REMOVED Direct View and New Tab options"""
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT file_url, title FROM manuscripts WHERE manuscript_id = ?", (manuscript_id,))
+            cursor.execute("SELECT file_url, title, author FROM manuscripts WHERE manuscript_id = ?", (manuscript_id,))
             manuscript = cursor.fetchone()
             
             if not manuscript:
@@ -738,11 +738,12 @@ def preview_manuscript(manuscript_id):
             
             file_url = manuscript['file_url']
             title = manuscript['title']
+            author = manuscript['author'] or 'Unknown'
             
             if not file_url:
                 return jsonify({"error": "No file URL available"}), 404
             
-            # Create a preview page with multiple options
+            # Create a preview page with Google Docs Viewer only
             html_content = f"""
             <!DOCTYPE html>
             <html>
@@ -783,54 +784,33 @@ def preview_manuscript(manuscript_id):
                         color: #666;
                         font-size: 1.1em;
                     }}
-                    .preview-options {{
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                        gap: 20px;
-                        margin-bottom: 30px;
-                    }}
-                    .option-card {{
-                        background: white;
-                        padding: 25px;
-                        border-radius: 15px;
+                    .manuscript-info {{
+                        background: #f8f9fa;
+                        padding: 20px;
+                        border-radius: 10px;
+                        margin-bottom: 20px;
                         text-align: center;
-                        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-                        border: 2px solid transparent;
-                        transition: all 0.3s ease;
-                        cursor: pointer;
                     }}
-                    .option-card:hover {{
-                        transform: translateY(-5px);
-                        border-color: #3498db;
-                        box-shadow: 0 15px 40px rgba(52, 152, 219, 0.2);
-                    }}
-                    .option-icon {{
-                        font-size: 3em;
-                        margin-bottom: 15px;
-                        color: #3498db;
-                    }}
-                    .option-title {{
-                        font-size: 1.3em;
-                        font-weight: 600;
+                    .manuscript-info h2 {{
                         color: #2c3e50;
-                        margin-bottom: 10px;
+                        margin-bottom: 5px;
                     }}
-                    .option-desc {{
+                    .manuscript-info p {{
                         color: #666;
-                        line-height: 1.5;
+                        margin: 5px 0;
                     }}
                     .viewer-container {{
                         background: white;
                         border-radius: 15px;
                         padding: 20px;
                         margin-top: 20px;
-                        display: none;
                     }}
                     .viewer-frame {{
                         width: 100%;
                         height: 70vh;
                         border: none;
                         border-radius: 10px;
+                        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
                     }}
                     .action-buttons {{
                         text-align: center;
@@ -867,32 +847,19 @@ def preview_manuscript(manuscript_id):
                 <div class="container">
                     <div class="preview-card">
                         <div class="header">
-                            <h1>📖 {title}</h1>
-                            <p>Choose how you want to view this manuscript</p>
+                            <h1>📖 Manuscript Viewer</h1>
+                            <p>Viewing manuscript via Google Docs Viewer</p>
                         </div>
                         
-                        <div class="preview-options">
-                            <div class="option-card" onclick="openDirectView()">
-                                <div class="option-icon">🔗</div>
-                                <div class="option-title">Direct View</div>
-                                <div class="option-desc">Open the file directly in your browser</div>
-                            </div>
-                            
-                            <div class="option-card" onclick="openGoogleViewer()">
-                                <div class="option-icon">📄</div>
-                                <div class="option-title">Google Docs Viewer</div>
-                                <div class="option-desc">Use Google's PDF viewer (recommended for PDFs)</div>
-                            </div>
-                            
-                            <div class="option-card" onclick="openNewTab()">
-                                <div class="option-icon">🔄</div>
-                                <div class="option-title">New Tab</div>
-                                <div class="option-desc">Open in a new browser tab</div>
-                            </div>
+                        <div class="manuscript-info">
+                            <h2>{title}</h2>
+                            <p><strong>Author:</strong> {author}</p>
+                            <p><em>Historical Manuscript Collection</em></p>
                         </div>
                         
-                        <div id="viewer-container" class="viewer-container">
-                            <iframe id="viewer-frame" class="viewer-frame" src=""></iframe>
+                        <div class="viewer-container">
+                            <iframe id="viewer-frame" class="viewer-frame" 
+                                    src="https://docs.google.com/gview?url={file_url}&embedded=true"></iframe>
                         </div>
                         
                         <div class="action-buttons">
@@ -907,28 +874,22 @@ def preview_manuscript(manuscript_id):
                 </div>
                 
                 <script>
-                    const fileUrl = "{file_url}";
+                    // Auto-resize iframe based on content
+                    window.addEventListener('message', function(event) {{
+                        if (event.data && event.data.type === 'iframe-height') {{
+                            document.getElementById('viewer-frame').style.height = event.data.height + 'px';
+                        }}
+                    }});
                     
-                    function openDirectView() {{
-                        // Try to open directly with inline disposition
-                        window.open(fileUrl, '_blank');
-                    }}
+                    // Show loading indicator
+                    document.getElementById('viewer-frame').onload = function() {{
+                        console.log('Document loaded successfully');
+                    }};
                     
-                    function openGoogleViewer() {{
-                        // Use Google Docs viewer for better PDF rendering
-                        const googleViewerUrl = `https://docs.google.com/gview?url=${{fileUrl}}&embedded=true`;
-                        document.getElementById('viewer-frame').src = googleViewerUrl;
-                        document.getElementById('viewer-container').style.display = 'block';
-                    }}
-                    
-                    function openNewTab() {{
-                        window.open(fileUrl, '_blank');
-                    }}
-                    
-                    // Auto-open Google Viewer for PDF files
-                    if (fileUrl.toLowerCase().endsWith('.pdf')) {{
-                        setTimeout(() => openGoogleViewer(), 500);
-                    }}
+                    document.getElementById('viewer-frame').onerror = function() {{
+                        console.error('Failed to load document');
+                        alert('Failed to load document. Please try downloading the file instead.');
+                    }};
                 </script>
             </body>
             </html>
@@ -962,25 +923,10 @@ def download_manuscript(manuscript_id):
                 response = redirect(file_url)
                 # Try to suggest download filename
                 safe_title = secure_filename(title)
-                response.headers['Content-Disposition'] = f'attachment; filename="{safe_title}.pdf"'
+                file_extension = file_url.split('.')[-1].lower() if '.' in file_url else 'pdf'
+                response.headers['Content-Disposition'] = f'attachment; filename="{safe_title}.{file_extension}"'
                 return response
             
-            # If it's a local path (this won't work on Render for uploaded files)
-            elif file_url and file_url.startswith('/uploads/'):
-                filename = file_url.split('/')[-1]
-                uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
-                file_path = os.path.join(uploads_dir, filename)
-                
-                if os.path.exists(file_path):
-                    safe_title = secure_filename(title)
-                    return send_from_directory(
-                        uploads_dir, 
-                        filename, 
-                        as_attachment=True,
-                        download_name=f"{safe_title}.{filename.split('.')[-1]}"
-                    )
-                else:
-                    return jsonify({"error": "File not found on server. On Render cloud, files must be stored in Azure Blob Storage."}), 404
             else:
                 return jsonify({"error": "Invalid file URL or file not accessible"}), 404
                 
